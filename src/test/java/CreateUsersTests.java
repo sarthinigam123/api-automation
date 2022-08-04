@@ -1,61 +1,70 @@
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.hamcrest.Matchers;
+import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import users.UsersClient;
+import users.create.CreateUserRequestBody;
+import users.create.response.CreateUserResponse;
+import users.get.GetUserResponse;
+
+import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 
 public class CreateUsersTests {
+
+    @BeforeClass
+    public void beforeClass(){
+        usersClient = new UsersClient();
+    }
+
+    private UsersClient usersClient;
+
     @Test
     public void shouldCreateMaleUser(){
-        //Arrange
-        String body = "{\n" +
-                "    \"name\": \"Tenali Ramakrishna\",\n" +
-                "    \"gender\": \"male\",\n" +
-                "    \"email\": \"tenali.ramakrishna1@yahoo.com\",\n" +
-                "    \"status\": \"active\"\n" +
-                "}";
+
+//        //Arrange
+
+        CreateUserRequestBody requestBody = new CreateUserRequestBody.Builder().gender("male").build();
 
         //Act
-        createUser(body)
-                .then()
-                .log().body()
+        CreateUserResponse createUserResponse = usersClient.createUser(requestBody);
+
 
                 //Assert
-                .statusCode(201)
-                .body("data.id", Matchers.notNullValue())
-                .body("data.email", Matchers.equalTo("tenali.ramakrishna1@yahoo.com"))
-                .body("data.name", Matchers.equalTo("Tenali Ramakrishna"));
+        createUserResponse.assertUser(requestBody);
 
-        
+
     }
 
     @Test
     public void shouldCreateFemaleUser(){
-        String body = "{\n" +
-                "    \"name\": \"Aditi Rawat\",\n" +
-                "    \"gender\": \"female\",\n" +
-                "    \"email\": \"aditi.rawat1@yahoo.com\",\n" +
-                "    \"status\": \"active\"\n" +
-                "}";
-        createUser(body)
-                .then()
-                .log().body()
-                .statusCode(201)
-                .body("data.id", Matchers.notNullValue())
-                .body("data.email", Matchers.equalTo("aditi.rawat1@yahoo.com"))
-                .body("data.name", Matchers.equalTo("Aditi Rawat"));
+        CreateUserRequestBody requestBody = new CreateUserRequestBody.Builder().gender("female").build();
+
+
+        CreateUserResponse createUserResponse = usersClient.createUser(requestBody);
+
+        //Assert
+        createUserResponse.assertUser(requestBody);
 
     }
 
-    private Response createUser(String body) {
-        return given()
-                .accept(ContentType.JSON)
-                .contentType(ContentType.JSON)
-                .header("Authorization", "Bearer b7f2230a07ad3b1da4eaef1eec45205a02168ee6f3404797702242b01fe62538")
-                .body(body)
+    public GetUserResponse getUser(int id){
+        Response response = given()
+                .pathParam("id", id)
                 .when()
-                .post("https://gorest.co.in/public/v2/users");
+                .get("https://gorest.co.in/public/v2/users/{id}");
+
+        response.then().log().body();
+
+        int statusCode = response.statusCode();
+
+        GetUserResponse getUserResponse = response.as(GetUserResponse.class);
+        getUserResponse.setStatusCode(statusCode);
+
+        return getUserResponse;
     }
 
 }
